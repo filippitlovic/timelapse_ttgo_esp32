@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-container label {
+            margin-bottom: 5px;
+        }
+
+        .input-container input {
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            margin-left: 10px; /* Dodano poravnanje ulijevo */
+        }
+
+        .input-container input:focus {
+            outline: none;
+            border-color: dodgerblue;
+        }
+
+        .input-container input#triggersInput {
+            width: 220px; /* Promijenjena širina za poravnanje s minutama i sekundama */
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn-container button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn-container button.primary {
+            background-color: dodgerblue;
+            color: white;
+        }
+
+        .btn-container button.secondary {
+            background-color: #ccc;
+            color: black;
+        }
+
+        .btn-container button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Set interval and number of shots</h1>
+    <form id="numberForm" class="form-container">
+        <div class="input-container">
+            <h2>Set interval:</h2>
+            <div>
+                <label for="minutesInput">Min:</label>
+                <input type="number" id="minutesInput" min="0" max="999" required>
+            </div>
+            <div>
+                <label for="secondsInput">Sec:</label>
+                <input type="number" id="secondsInput" min="0" max="59" required>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <h2>Set number of shots:</h2>
+            <input type="number" id="triggersInput" min="0" max="999" required>
+        </div>
+        
+        <div class="btn-container">
+            <button type="button" id='submit_btn' class="primary" onclick="submitFormData()">Submit</button>
+        </div>
+    </form>
+    <script>
+        var Socket;
+
+        function submitFormData() {
+            var minutes = parseInt(document.getElementById("minutesInput").value);
+            var seconds = parseInt(document.getElementById("secondsInput").value);
+            var triggers = parseInt(document.getElementById("triggersInput").value);
+            
+    
+            window.open("start", "_blank");
+            
+            var triggerCount = document.getElementById("triggersInput").value; 
+            var minutes = document.getElementById("minutesInput").value; 
+            var seconds = document.getElementById("secondsInput").value; 
+            
+                Socket.send('interval');
+                Socket.send(triggerCount); 
+                Socket.send(minutes); 
+                Socket.send(seconds);
+            
+        }
+        function init(){
+            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+            Socket.onmessage = function(event) {
+            
+            }
+        }
+
+        window.onload = function(event){
+            init();
+        }
+
+    </script>
+
+</body>
+</html>

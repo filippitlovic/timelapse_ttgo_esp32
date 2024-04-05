@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timelapse</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        #container {
+            width: 60%;
+            margin: 0 auto;
+        }
+
+        #intervalDisplay {
+            margin: 20px auto;
+            padding: 20px;
+            border: 4px solid dodgerblue;
+            border-radius: 10px;
+            background-color: #fff;
+            text-align: center;
+        }
+
+        #intervalDisplay p {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        #buttons {
+            margin-top: 20px;
+        }
+
+        #buttons button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+
+        #buttons #startBtn {
+            background-color: dodgerblue;
+            color: white;
+        }
+
+        #buttons #cancelBtn {
+            background-color: #ccc;
+            color: black;
+        }
+
+        #buttons button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Timelapse</h1>
+        
+        <div id='intervalDisplay'>
+            <p>Interval: <span id='intervalMinutes'></span> min <span id='intervalSeconds'></span> sec</p>
+            <p>Number of shots: <span id='numberOfShots'></span></p>
+            <p>Time: <span id='timeHours'></span> h <span id='timeMinutes'></span> m <span id='timeSeconds'></span> s</p>
+        </div>
+
+        <div id='buttons'>
+            <button id='startBtn' onclick='startTimelapse()'>Start timelapse</button>
+            <button id='cancelBtn' onclick='cancel()'>Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        var Socket;
+        Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+        Socket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            document.getElementById('intervalMinutes').textContent = data.intervalMinutes;
+            document.getElementById('intervalSeconds').textContent = data.intervalSeconds;
+            document.getElementById('numberOfShots').textContent = data.noShots;
+            document.getElementById('timeHours').textContent = data.timeH;
+            document.getElementById('timeMinutes').textContent = data.timeM;
+            document.getElementById('timeSeconds').textContent = data.timeS;
+        };
+        function startTimelapse(){
+            Socket.send('start');
+            window.open("runningScreen", "_blank");
+        }
+        function cancel(){
+            window.open("main", "_blank");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .input-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-container label {
+            margin-right: 10px;
+        }
+
+        .input-container input {
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100px;
+            box-sizing: border-box;
+        }
+
+        .input-container input:focus {
+            outline: none;
+            border-color: dodgerblue;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn-container button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn-container button.primary {
+            background-color: dodgerblue;
+            color: white;
+        }
+
+        .btn-container button.secondary {
+            background-color: #ccc;
+            color: black;
+        }
+
+        .btn-container button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Unesi interval i broj okidanja</h1>
+    <form id="numberForm">
+        <div class="input-container">
+            <h2>Unesi interval (min i sec):</h2>
+            <div>
+                <label for="minutesInput">Min:</label>
+                <input type="number" id="minutesInput" min="0" max="999" required>
+            </div>
+            <div>
+                <label for="secondsInput">Sec:</label>
+                <input type="number" id="secondsInput" min="0" max="59" required>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <h2>Unesi broj okidanja:</h2>
+            <input type="number" id="triggersInput" min="0" max="999" required>
+        </div>
+        
+        <div class="btn-container">
+            <button type="button"  id='submit_btn'  class="primary" onclick="showConfirmation()">Submit</button>
+        </div>
+        <div id='rubrikaZaPrikaz'>Rubrika</div>
+    </form>
+    <script>
+        var Socket;
+        function showConfirmation() {
+            var minutes = parseInt(document.getElementById("minutesInput").value);
+            var seconds = parseInt(document.getElementById("secondsInput").value);
+            var triggers = parseInt(document.getElementById("triggersInput").value);
+            
+            var totalTimeInSeconds = (minutes * 60 + seconds) * triggers;
+            var hours = Math.floor(totalTimeInSeconds / 3600);
+            
+            var remainingSeconds = totalTimeInSeconds % 3600;
+            var minutes = Math.floor(remainingSeconds / 60);
+            var seconds = remainingSeconds % 60;
+            
+            var confirmation = window.confirm("Ukupno vrijeme timelapse-a: " + hours + "h " + minutes + "m " + seconds + "Pokrenuti akciju?");
+            
+            if (confirmation) {
+                var newPage = window.open("about:blank", "_blank");
+                newPage.document.write("<!DOCTYPE html><html><head><title>Timelapse</title></head><body><h1>Timelapse</h1><div id='rand'>Randndn</div></body></html>");
+            }
+        }
+        function init(){
+        Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+        Socket.onmessage = function(event) {
+            var sentValueDiv = document.getElementById('rubrikaZaPrikaz');
+            sentValueDiv.innerHTML = 'Primljeni podatak: ' + event.data;
+        }
+    }
+    function button_send_back() {
+        var triggerCount = document.getElementById("triggersInput").value; 
+        Socket.send(triggerCount); 
+
+        var minutes = document.getElementById("minutesInput").value; 
+        Socket.send(minutes); 
+        
+        var seconds = document.getElementById("secondsInput").value; 
+        Socket.send(seconds);
+    }
+   
+
+    window.onload = function(event){
+        init();
+        document.getElementById('submit_btn').addEventListener('click', button_send_back);
+    }
+
+    </script>
+
+</body>
+</html>

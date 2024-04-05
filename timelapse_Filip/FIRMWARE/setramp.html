@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ramping</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #content {
+            margin-top: 50px;
+        }
+        label {
+            margin-right: 10px;
+        }
+        .input-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-container label {
+            margin-right: 10px;
+        }
+        .input-container input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 60px;
+            margin-right: 5px;
+            text-align: center;
+        }
+        .btn-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .btn-container button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        #startBtn {
+            background-color: dodgerblue;
+            color: white;
+        }
+        #cancelBtn {
+            background-color: #ccc;
+            color: black;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .frame {
+            border: 2px solid dodgerblue;
+            border-radius: 5px;
+            padding: 10px;
+            max-width: 300px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id='content'>
+        <h1>Ramping</h1>
+        <div class="frame">
+            <div class="input-container">
+                <label for='rampTime'>Set ramp time:</label>
+                <input type='number' id='rampTime' min='1' step='1'> min
+            </div>
+            <div class="input-container">
+                <label for='rampInterval'>Set ramp interval:</label>
+                <input type='number' id='rampInterval' min='1' step='1'> min
+                <input type='number' id='rampIntervalSec' min='1' max='59' step='1'> sec
+            </div>
+        </div>
+        <div class="btn-container">
+            <button id='startBtn' onclick='startRamp()'>Start ramp</button>
+            <button id='cancelBtn' onclick='cancelRamp()'>Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        var Socket;
+        function startRamp() {
+            var rampTime = document.getElementById('rampTime').value;
+            var rampInterval = document.getElementById('rampInterval').value;
+            var rampIntervalSec = document.getElementById('rampIntervalSec').value;
+            
+            window.open("runningScreen", "_blank");
+
+            Socket.send('ramp');
+            Socket.send(rampTime);
+            Socket.send(rampInterval);
+            Socket.send(rampIntervalSec);
+        };
+        function cancelRamp() {
+            window.open("runningScreen", "_blank");
+        };
+        function init(){
+            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+            Socket.onmessage = function(event) {
+            
+            }
+        };
+
+        window.onload = function(event){
+            init();
+        }
+        
+    </script>
+</body>
+</html>

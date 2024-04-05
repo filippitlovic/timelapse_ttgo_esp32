@@ -1,13 +1,5 @@
 /*TIME LAPSE
- * 
-   * Esto es una Demo para probar el funcionamiento del hardware, este sketch carga el logo de inicio "fotoigual.bmp". Después aparece un menú de uso de los
-   * dos botones uno hace dos disparos y el otro muestra el voltage de carga / batería y si hacemos una pulsación larga entra el modo deep sleep. 
-   * Tocando el mismo botón, provoca el despertar del dispositivo
-   * Este sketch es una modificación  de: https://github.com/Xinyuan-LilyGO/TTGO-T-Display/blob/master/TFT_eSPI/examples/FactoryTest/
-   * 
-   * 
-   * Muy importante: Elegir el User_Setup.h que corresponde a "TTGO T Display".  Está en \TFT_eSPI\User_Setups\Setup25_TTGO_T_Display.h.
-   * 
+
 
 */
 #include <TFT_eSPI.h>
@@ -50,9 +42,8 @@
 //  const char* ssid = "Pro-Ping_940E";
 //  const char* password = "74715282";
 
-const char* ssid = "Speedport-307639";
-const char* password = "monika777";
-
+// const char* ssid = "Speedport-307639";
+// const char* password = "monika777";
 
 
 //
@@ -98,6 +89,10 @@ int btnClick = false;
 const int button_1_pin = 0;
 const int button_2_pin = 35;
 
+
+unsigned long shotStartTime = 0;
+const unsigned long shotDuration = 800;
+
 //screens
 int currentScreen = 0; 
 int intervalScreen = 1;
@@ -107,7 +102,7 @@ int runningScreen=4;
 int rampScreenInterval=6;
 int rampScreenTime=7;
 int mainMenuScreen = 8;
-
+int ipScreen = 13;
 //menus
 int runningMenu=5;
 int intervalChooseMenu = 9;
@@ -164,7 +159,7 @@ int millisPassed = 0;
 int millisPassedDown = 0;
 int timerStartFlagMilisDown = 0;
 int timerFlagMilisDown = 0;
-
+IPAddress ip;
 
 //flags
 int rampOn = 0;
@@ -339,7 +334,7 @@ void openMenu(){
   }else if(currentScreen==noShotsChooseMenu){
     tft.print("Reset no shots");
   }else if(currentScreen==runningMenu){
-    tft.print("Stop shooting");
+    tft.print("Stop ramping");
   }else if(currentScreen==rampMenu){
     tft.print("Change ramp time");
   }
@@ -353,12 +348,20 @@ void openMenu(){
   if(menuButtonClicked){ //ako je kliknut pause 'menu'
     menuButtonClicked = 0;
     if(menuY==0){
-      flagFirstNumber=0; //prvi broj da mi ne bude u startu 1 vec da bude 0
+      flagFirstNumber=0; 
       if(currentScreen==intervalChooseMenu){
         setNumberOfShots();  
       }else if(currentScreen == noShotsChooseMenu ){
         openStartScreen();
       }else if(currentScreen == runningMenu){ //set ramp interval
+        button1Flag=0;
+        button2Flag=0;
+        intervalXrampTime = 50;
+        intervalYrampTime = 70;
+        rampIndexDown = 0;
+        rampIndexUp = 0;
+        rampOn = 0;
+        rampTime=0;
         setRampTime();  
       }else if(currentScreen == rampMenu){ 
         runRamping();
@@ -378,14 +381,32 @@ void openMenu(){
         noShotsTens=0;
         noShotsOnes=0;
         setNumberOfShots();
-      }else if(currentScreen == rampMenu){ 
+      }else if(currentScreen == rampMenu){ // change ramp time
+        button1Flag=0;
+        button2Flag=0;
+        intervalXrampTime = 50;
+        intervalYrampTime = 70;
+        rampIndexDown = 0;
+        rampIndexUp = 0;
+        rampOn = 0;
+        rampTime=0;
         setRampTime();  
+      }else if(currentScreen==runningMenu){ // stop ramping
+        button1Flag=0; 
+        button2Flag=0;
+        rampIndexDown = 0;
+        rampIndexUp = 0;
+        rampOn = 0;
+        rampTime=0;
+        openRunningScreen();
       }
     }
     else if(menuY==60){ //main menu
-     time_lapse(); //ovdje ide vjj nesta novo, da me odvede na main menu
+     openMainMenu(); 
     }else if(menuY==90){ //go back
       if(currentScreen==intervalChooseMenu){
+        //add not to increase number for plus on 
+        button2Flag=0;
         intervalX = 50;
         intervalY = 70;
         setInterval();  
@@ -491,6 +512,10 @@ void setNumberOfShots()
 void openNoShotsMenu(){
   currentScreen=noShotsChooseMenu;
   numberOfShots = (noShotsHundreds*100)+(noShotsTens*10)+(noShotsOnes);
+  //unlimited number of shots its set on 10k
+  if(numberOfShots==0){
+    numberOfShots = 10000;
+  }
   openMenu();
 }
 
@@ -586,6 +611,10 @@ void runRunningMenu(){
 }
 
 void rampingLoop(){
+Serial.println(rampIndexDown);
+Serial.println(rampIndexUp);
+Serial.println(rampTime);
+Serial.println(rampIntervalTimeSeconds);
 
 if(startingMilisecondsFlag == 0 && startingMilisecondsDownFlag == 0){
     rampIndexCount++;
@@ -596,6 +625,8 @@ if(startingMilisecondsFlag == 0 && startingMilisecondsDownFlag == 0){
   }
   else{
     rampOn=0;
+    rampIndexDown = 0;
+    rampIndexUp = 0;
   } 
   //decrease interval
   if(rampIndexDown == rampIndexCount){
@@ -880,23 +911,17 @@ void updateRunningScreen(){
 
 void releaseCamera(){
   Serial.println("Camera released! Taking a shot...");
-  //triger shot logic
-
-  //digitalWrite(CAM_F,HIGH);
-  //digitalWrite(CAM_S,HIGH);
-  //delay(200);
-  //digitalWrite(CAM_S,LOW); //set to low to reset state back 
-  //napravit dio da ocitava exposure kamere ako je moguce
-  //jer kad se mijenja exposure onda se interval u timelapsu ne izvrsava kako spada
-
     digitalWrite(CAM_S, HIGH);
     digitalWrite(CAM_F, HIGH);
+    shotStartTime = millis(); // Record the time when the shot is initiated
+ }
 
-    delay(1000);
-    digitalWrite(CAM_S, LOW);
-    digitalWrite(CAM_F, LOW);
+void updateCamera() {
+  if (digitalRead(CAM_S) == HIGH && millis() - shotStartTime >= shotDuration) {
+    digitalWrite(CAM_S, LOW); // Turn off CAM_S pin after shotDuration milliseconds
+    digitalWrite(CAM_F, LOW); // Turn off CAM_F pin as well if needed
+  }
 }
-
 void pauseMenu(){
   currentScreen = runningMenu;
   openMenu();
@@ -926,6 +951,9 @@ void setRampTime(){
     if(button1Flag==1){
       button1Flag=0;
       if(intervalXrampTime == 160){
+        //promjena
+        intervalCursorX = 50;
+        intervalCursorY = 70;
         setRampInterval();
       }else if(rampTime > 0){
       rampTime--;
@@ -970,7 +998,6 @@ void intervalsScreen(int &x, int &y){
       button2Flag=0;
       if(intervalCursorX==50){
         x++; 
-      Serial.println(String(x));
         if(flagFirstNumber==0){
           x=0;
           flagFirstNumber=1;
@@ -1016,7 +1043,14 @@ void intervalsScreen(int &x, int &y){
         }else if(currentScreen == intervalScreen){
           intervalCursorX = 50;
           intervalCursorY = 70;
-          openIntervalMenu();
+          if(intervalMinutes == 0 && intervalSeconds == 0){
+            tft.setCursor(10,90);
+            tft.print("Interval can't be 0");
+            delay(2000);
+            setInterval();
+          }else{
+            openIntervalMenu();
+          }
         }  
       }
     }
@@ -1086,6 +1120,7 @@ void webSocketEvent(byte num, WStype_t type, uint8_t * payload, size_t length){
     }
     
     if(receivedMessage == "menu"){
+      resetAllValues();
       receivedMessageFlag = 0;
      }
 
@@ -1113,7 +1148,7 @@ void webSocketEvent(byte num, WStype_t type, uint8_t * payload, size_t length){
  }
 }
 
-void sendSensorData(){
+void sendData(){
 
   StaticJsonDocument<200> jsonDoc;
   jsonDoc["intervalMinutes"] = intervalMinutes;
@@ -1143,6 +1178,7 @@ void connectToWiFi() {
     }
     if(WiFi.status() == WL_CONNECTED){
       Serial.println(WiFi.localIP());
+      ip = WiFi.localIP();
       Serial.println("WiFi connected!");
       webFlag = 1;
       server.on("/main", [] (){
@@ -1168,11 +1204,24 @@ void connectToWiFi() {
       webSocket.onEvent(webSocketEvent);
       Serial.println(currentScreen);
       if(currentScreen == connectToWebScreen){
-      
-        setInterval();
+        checkIP();
+        //setInterval();
     }
   }
 
+}
+
+void checkIP(){
+  
+  tft.fillScreen(TFT_BLACK);
+  currentScreen=ipScreen; 
+  tft.setCursor(5,50);
+  String ipString = ip.toString();
+  tft.setTextSize(2);
+  tft.print("ip:" + ipString);
+  tft.setCursor(125,110);
+  tft.print("Start>");
+  
 }
 
 void setup()
@@ -1242,6 +1291,88 @@ void openMainMenu(){
 
     tft.setCursor(15,110);
     tft.print("Connect to web ->");
+
+    //reset all variables to 0
+    resetAllValues();
+}
+
+void resetAllValues(){
+
+ x=0;
+ y=0;
+ intervalTime = 0;
+ rampTime=0;
+ rampInterval=0;
+ numberOfShots = 0;
+ rampIndexCount = 0;
+ rampIntervalTimeSeconds = 0;
+ noShotX=50;
+ noShotY=70;
+noShotsTens = 0;
+noShotsHundreds=0;
+noShotsOnes=0;
+pressedTime  = 0;
+pressedTime2  = 0;
+lastState = 0;
+lastState2 = 0;
+finalSeconds = 0;
+minutes = 0;
+shotsDone = 0;
+shotsLeft = 0;
+shotsCounter = 0;
+intervalHours=0;
+rampIntervalMinutes=0;
+ rampIntervalSeconds=0;
+ intervalMinutes=0;
+ intervalSeconds=0;
+ intervalX=50;
+ intervalY = 70;
+ menuY = 0;
+ intervalXrampTime = 50;
+ intervalYrampTime =  70;
+ intervalCursorX=50;
+ intervalCursorY=70;
+ intervalTimeSeconds = 0;
+ minutesForInterval = 0;
+ hoursInterval = 0;
+ hoursLeft = 0;
+ minutesLeft = 0;
+ secondsLeft = 0;
+ rampIndexUpMiliseconds = 0;
+ rampIndexDownMiliseconds = 0;
+ millisPassed = 0;
+ millisPassedDown = 0;
+ timerStartFlagMilisDown = 0;
+ timerFlagMilisDown = 0;
+
+
+//flags
+ rampOn = 0;
+ rampIndexUp = 0;
+ rampIndexDown = 0;
+ changeTimeIndex = 0;
+ btn1Clicked = false;
+ btn2Clicked = false;
+ btn1LongClicked = false;
+ button1Flag = 0;
+ button2Flag = 0;
+btnFlag=0;
+ btnFlag2=0;
+ menuFlag=0;
+ menuButtonClicked=0;
+timerStartFlag = 0;
+timerFlag=0;
+ btn1LongClickFlag=0;
+ flagFirstNumber = 0;
+ runningFlag = 0;
+ firstButtonClick = 0;
+ rampingFlagWeb = 0;
+ webFlag = 0;
+ timerFlagMilis = 0;
+ timerStartFlagMilis = 0;
+ startingMilisecondsFlag = 0;
+ startingMilisecondsDownFlag = 0;
+
 }
 
 void connectToWeb(){
@@ -1254,7 +1385,7 @@ void connectToWeb(){
 
 void loop()
 {
-
+updateCamera();
   //web
   if(webFlag == 1 && WiFi.status() != WL_CONNECTED){
       while(WiFi.status() != WL_CONNECTED) {
@@ -1268,7 +1399,7 @@ void loop()
   
   server.handleClient();
   webSocket.loop();
-  sendSensorData();
+  sendData();
   //web
 
 
@@ -1318,6 +1449,9 @@ void loop()
       } 
     }else if (pressDuration <= 500) {
         button1Flag = 1;
+        if(currentScreen == ipScreen){ 
+          setInterval();
+        }
         if(currentScreen == mainMenuScreen){ 
           connectToWeb();
         }
@@ -1449,8 +1583,6 @@ void loop()
       }
     } else if (pressDuration <= 500) { //// short pressed button 2 (button up)
         button2Flag = 1;
-        Serial.println("A short press is detected");
-
         if(currentScreen == mainMenuScreen){ 
           setInterval();
         }

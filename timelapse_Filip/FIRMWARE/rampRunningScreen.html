@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Running Screen</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f0f0f0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+  }
+
+  h1 {
+    margin-bottom: 20px;
+  }
+
+  .data-container {
+    padding: 20px;
+    border: 3px solid dodgerblue;
+    border-radius: 10px;
+    background-color: #fff;
+    width: 80%;
+    max-width: 600px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .data-container p {
+    margin: 10px 0;
+    font-size: 18px;
+  }
+
+  .data-container p:first-child {
+    font-size: 20px;
+    margin-top: 0;
+  }
+
+  .ramping {
+    color: red;
+    font-weight: bold;
+  }
+
+  .button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .button-container button {
+    padding: 10px 20px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+
+  #stopRampingBtn {
+    background-color: dodgerblue;
+    color: white;
+  }
+
+  #changeRampingBtn {
+    background-color: orange;
+    color: black;
+  }
+
+  #cancelBtn {
+    background-color: #ccc;
+    color: black;
+  }
+
+  .button-container button:hover {
+    opacity: 0.8;
+  }
+</style>
+</head>
+<body>
+<h1>Running Screen</h1>
+
+<div class="data-container">
+  <p><span class="ramping">Ramping</span></p>
+  <p>Interval: <span id="intervalMinutes"></span> min <span id="intervalSeconds"></span> sec</p>
+  <p>Time: <span id="timeHours"></span> h <span id="timeMinutes"></span> m <span id="timeSeconds"></span> s</p>
+  <p>Shots done: <span id="shotsDone"></span></p>
+  <p>Shots left: <span id="shotsLeft"></span></p>
+  <p>Next shot in: <span id="nextShotMinutes"></span> m <span id="nextShotSeconds"></span> s</p>
+</div>
+
+<div class="button-container">
+  <button id="stopRampingBtn" onclick="stopRamping()">Stop Ramping</button>
+  <button id="changeRampingBtn" onclick="changeRamping()">Change Ramping</button>
+  <button id="cancelBtn" onclick="cancel()">Main menu</button>
+</div>
+
+<script>
+  var Socket;
+  Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+  Socket.onmessage = function(event) {
+    var jsonData = JSON.parse(event.data);
+    document.getElementById('intervalMinutes').textContent = jsonData.intervalMinutes;
+    document.getElementById('intervalSeconds').textContent = jsonData.intervalSeconds;
+    document.getElementById('timeHours').textContent = jsonData.timeH;
+    document.getElementById('timeMinutes').textContent = jsonData.timeM;
+    document.getElementById('timeSeconds').textContent = jsonData.timeS;
+    document.getElementById('shotsDone').textContent = jsonData.shotsDone;
+    document.getElementById('shotsLeft').textContent = jsonData.noShots;
+    document.getElementById('nextShotMinutes').textContent = jsonData.nextShotMinutes;
+    document.getElementById('nextShotSeconds').textContent = jsonData.nextShotSeconds;
+  };
+
+  function stopRamping() {
+  };
+
+  function changeRamping() {
+    window.open("setRampScreen", "_blank"); 
+  };
+
+  function cancel() {
+    Socket.send('menu');
+    window.open("main", "_blank");
+  };
+</script>
+</body>
+</html>
